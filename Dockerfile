@@ -11,17 +11,24 @@ ENV WINEARCH win32
 # Disabling warning messages from wine, comment for debug purpose.
 ENV WINEDEBUG -all
 
-# Install requirements
-RUN dpkg --add-architecture i386
-RUN apt-get update -y && apt-get install -y software-properties-common && add-apt-repository -y ppa:ubuntu-wine/ppa
-RUN apt-get update -y && apt-get install -y wine1.8 winetricks xvfb xauth
+# DLL overrides for wine
+ENV WINEDLLOVERRIDES mscoree,mshtml=
 
-ADD https://app-updates.agilebits.com/download/OPW4 /tmp/1Password.exe
+# 1password URL
+ARG ONEPASSWORD_URL=https://app-updates.agilebits.com/download/OPW4
+
 ADD start_1password.sh /usr/local/bin
 
-ENV WINEDLLOVERRIDES mscoree,mshtml=
 # Install command shamelessly borrowed from geekylucas/dockerfiles
-RUN xvfb-run -a /bin/bash -c "WINEDEBUG= wine /tmp/1Password.exe /VERYSILENT /DIR=C:\\1Password" && wineserver --wait
+RUN dpkg --add-architecture i386 && \
+    apt-get update && apt-get install -y curl software-properties-common && \
+    add-apt-repository -y ppa:ubuntu-wine/ppa && \
+    apt-get update -y && apt-get install -y wine1.8 winetricks xvfb xauth && \
+    curl -L -o /tmp/1Password.exe $ONEPASSWORD_URL && \
+    xvfb-run -a /bin/bash -c "WINEDEBUG= wine /tmp/1Password.exe /VERYSILENT /DIR=C:\\1Password" && \
+    wineserver --wait && apt-get remove -y curl xvfb xauth && \
+    SUDO_FORCE_REMOVE=yes apt-get autoremove -y && \
+    rm /tmp/1Password.exe && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 6258
 

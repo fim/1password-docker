@@ -1,0 +1,11 @@
+services:
+  - docker
+
+script:
+  - docker build -t eyehatefim/1password .
+
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+    docker push eyehatefim/1password;
+    fi
